@@ -148,5 +148,18 @@ function submitGuess() {
 
 </script>
 
+  <div id="quantum-badge" style="text-align:center; font-size:0.8em; opacity:0.7; margin-top:12px;">
+  Today's seed: loading...
+</div>
+<script>
+  fetch("seed.json")
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById("quantum-badge").textContent =
+        "Today's seed: " + (d.backend || "quantum") + " · " + d.date;
+    })
+    .catch(() => {});
+</script>
+
 </body>
 </html>
