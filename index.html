@@ -64,13 +64,10 @@
 </div>
 
 <script>
-// ===================== GAME =====================
-const WORDS = [
-  "orbit","phase","quark","laser","field",
-  "force","decay","pulse","gauge","spine",
-  "chaos","light","prism","trace","stone"
-].filter(w => w.length === 5);
+// ===================== WORD LIST (5,757 words, loaded at startup) =====================
+const WORDLIST_URL = "https://raw.githubusercontent.com/charlesreid1/five-letter-words/master/sgb-words.txt";
 
+let WORDS = [], VALID = null;
 let target = null, attempts = [], done = false,
     backendName = "quantum", seedDate = "";
 
@@ -81,14 +78,28 @@ function dateSeed() {
   return { seed: h, bits: (h % 256).toString(2).padStart(8,"0") };
 }
 
-fetch("seed.json").then(r => r.json()).then(d => {
-  startGame(d.seed, d.quantum_bits, d.backend || "quantum", d.date || "");
-  buildField(d.quantum_bits || "10101010", d.seed || 12345);
-}).catch(() => {
-  const f = dateSeed();
-  startGame(f.seed, f.bits, "quantum (offline)", "");
-  buildField(f.bits, f.seed);
-});
+fetch(WORDLIST_URL)
+  .then(r => r.text())
+  .then(txt => {
+    WORDS = txt.split("\n").map(w => w.trim().toLowerCase())
+               .filter(w => /^[a-z]{5}$/.test(w));
+    VALID = new Set(WORDS);
+  })
+  .catch(() => {
+    WORDS = ["orbit","phase","quark","laser","field","force","decay","pulse",
+             "gauge","spine","chaos","light","prism","trace","stone"];
+    VALID = new Set(WORDS);
+  })
+  .then(() => fetch("seed.json").then(r => r.json()))
+  .then(d => {
+    startGame(d.seed, d.quantum_bits, d.backend || "quantum", d.date || "");
+    buildField(d.quantum_bits || "10101010", d.seed || 12345);
+  })
+  .catch(() => {
+    const f = dateSeed();
+    startGame(f.seed, f.bits, "quantum (offline)", "");
+    buildField(f.bits, f.seed);
+  });
 
 function startGame(seed, bits, backend, date) {
   target = WORDS[seed % WORDS.length];
@@ -145,6 +156,13 @@ function submitGuess() {
   const input = document.getElementById("guess");
   const guess = input.value.toLowerCase();
   if (guess.length !== 5) return;
+
+  if (VALID && !VALID.has(guess)) {
+    document.getElementById("msg").textContent = "Not in word list";
+    blip(180, .1, "sawtooth");
+    setTimeout(() => { if (!done) document.getElementById("msg").textContent = ""; }, 1200);
+    return;
+  }
 
   const score = scoreGuess(guess, target);
   attempts.push(score);
