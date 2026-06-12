@@ -163,4 +163,101 @@ function submitGuess() {
   } else if (attempts.length === 6) {
     done = true;
     msg.textContent = "Game over. Word was: " + target;
-    blip(160
+    blip(160, .3, "sawtooth");
+    document.getElementById("sharebtn").style.display = "inline-block";
+  }
+}
+document.getElementById("guess").addEventListener("keydown",
+  e => { if (e.key === "Enter") submitGuess(); });
+
+// ---- win effects ----
+function winFanfare() {
+  [523, 659, 784, 1047].forEach((f,i) =>
+    setTimeout(() => blip(f, .12, "triangle", .06), i*120));
+}
+function confetti() {
+  const emo = ["⚛️","🟩","✨","🎉","🟨"];
+  for (let i = 0; i < 36; i++) {
+    const s = document.createElement("span");
+    s.className = "confetti";
+    s.textContent = emo[i % emo.length];
+    s.style.left = Math.random()*100 + "vw";
+    s.style.animationDelay = (Math.random()*0.7) + "s";
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 3200);
+  }
+}
+
+// ---- share ----
+function shareResult() {
+  const won = attempts.length && attempts[attempts.length-1] === "🟩🟩🟩🟩🟩";
+  const text = "The Q Word " + (seedDate || "") + " " +
+    (won ? attempts.length + "/6" : "X/6") +
+    "\nSeeded by " + backendName + " ⚛️\n\n" +
+    attempts.join("\n") + "\n\nhttps://theqword.netlify.app";
+  if (navigator.share) { navigator.share({ text }).catch(()=>{}); }
+  else {
+    navigator.clipboard.writeText(text).then(() =>
+      document.getElementById("msg").textContent = "Copied! Paste anywhere 📋");
+  }
+}
+
+// ===================== QUANTUM FIELD BACKGROUND =====================
+const qcv = document.getElementById("qfield"), qcx = qcv.getContext("2d");
+function qfit(){ qcv.width = innerWidth; qcv.height = innerHeight; }
+qfit(); addEventListener("resize", qfit);
+
+function qrng(s){ return function(){ s=(s*1664525+1013904223)>>>0; return s/4294967296; }; }
+
+const PALETTES = [
+  ["#0b0f1a","#1c2e6e","#3f6ad8","#7fdcff"],
+  ["#150a26","#5d2a8c","#a04ad8","#ffb3ff"],
+  ["#04140f","#0f5138","#2fae6e","#aaffc3"],
+  ["#1a0e08","#7a3b12","#e08a2e","#ffe9a0"]
+];
+
+let orbs = [], stars = [], pal = PALETTES[0], fieldOn = false;
+
+function buildField(bits, seed){
+  const r = qrng(seed >>> 0);
+  pal = PALETTES[parseInt(bits.slice(0,2),2)];
+  const nOrbs = 4 + parseInt(bits.slice(2,4),2)*2;
+  const speed = 0.15 + parseInt(bits.slice(4,6),2)*.12;
+  const size  = 60 + parseInt(bits.slice(6,8),2)*40;
+  orbs = Array.from({length:nOrbs}, () => ({
+    x:r()*innerWidth, y:r()*innerHeight,
+    dx:(r()-.5)*speed, dy:(r()-.5)*speed,
+    rad:size*(0.6+r()*0.8), c:pal[2+((r()*2)|0)]
+  }));
+  stars = Array.from({length:70}, () => ({
+    x:r()*innerWidth, y:r()*innerHeight, s:r()*1.6+.4, tw:r()*6.28
+  }));
+  if (!fieldOn){ fieldOn = true; requestAnimationFrame(drawField); }
+}
+
+function drawField(t){
+  qcx.fillStyle = pal[0]; qcx.fillRect(0,0,qcv.width,qcv.height);
+  stars.forEach(s => {
+    qcx.globalAlpha = .35 + .35*Math.sin(t/900 + s.tw);
+    qcx.fillStyle = "#ffffff";
+    qcx.fillRect(s.x, s.y, s.s, s.s);
+  });
+  qcx.globalAlpha = 1;
+  orbs.forEach(o => {
+    o.x += o.dx; o.y += o.dy;
+    if (o.x < -o.rad) o.x = qcv.width + o.rad;
+    if (o.x > qcv.width + o.rad) o.x = -o.rad;
+    if (o.y < -o.rad) o.y = qcv.height + o.rad;
+    if (o.y > qcv.height + o.rad) o.y = -o.rad;
+    const g = qcx.createRadialGradient(o.x,o.y,0,o.x,o.y,o.rad);
+    g.addColorStop(0, o.c + "55");
+    g.addColorStop(1, "transparent");
+    qcx.fillStyle = g;
+    qcx.beginPath(); qcx.arc(o.x,o.y,o.rad,0,6.29); qcx.fill();
+  });
+  requestAnimationFrame(drawField);
+}
+</script>
+
+</body>
+</html>
