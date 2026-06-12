@@ -1,5 +1,7 @@
 {
   "date": "2026-06-12",
-  "quantum_bits": "10100111",
-  "seed": 167
+  "quantum_bits": "01110000",
+  "seed": 112,
+  "backend": "ibm_fez",
+  "job_id": "d8lqrfr2d42s73cbppa0"
 }
