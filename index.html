@@ -6,36 +6,37 @@
 <title>The Q Word</title>
 <style>
   body { font-family: Arial, sans-serif; background:#0b0f1a; color:#fff;
-         text-align:center; padding-top:24px; }
+         text-align:center; padding-top:24px; margin:0; }
   h1 { margin-bottom:5px; }
   input { font-size:20px; padding:10px; width:160px; text-align:center;
           text-transform:lowercase; }
   button { padding:10px 15px; margin-left:10px; cursor:pointer; }
   .row { font-size:24px; letter-spacing:4px; margin:8px; }
   #board { margin-top:20px; }
-  #qubits { display:flex; justify-content:center; gap:6px; margin:14px 0; }
-  .qubit { width:30px; height:30px; line-height:30px; border:2px solid #3a4a7a;
-           border-radius:6px; background:#141b33; font-family:monospace;
-           font-size:16px; color:#7fdcff; animation:flicker .9s infinite; }
+  #qubits { display:flex; justify-content:center; gap:5px; margin:10px 0 6px; }
+  .qubit { width:22px; height:22px; line-height:22px; font-size:12px;
+           border:2px solid #3a4a7a; border-radius:5px; background:#141b33;
+           font-family:monospace; color:#7fdcff; animation:flicker .9s infinite; }
   .qubit.collapsed { animation:none; background:#1a2a55; color:#9effa0;
-                     border-color:#9effa0; transform:scale(1); }
+                     border-color:#9effa0; }
   @keyframes flicker { 0%,100%{opacity:.4} 50%{opacity:1} }
   #msg { min-height:28px; margin-top:14px; font-size:18px; }
   .win-pop { animation:pop .5s ease; color:#9effa0; }
   @keyframes pop { 0%{transform:scale(.4)} 60%{transform:scale(1.25)} 100%{transform:scale(1)} }
-  .confetti { position:fixed; top:-12px; font-size:20px; animation:fall 2.4s linear forwards;
-              pointer-events:none; }
+  .confetti { position:fixed; top:-12px; font-size:20px;
+              animation:fall 2.4s linear forwards; pointer-events:none; }
   @keyframes fall { to { transform:translateY(105vh) rotate(540deg); opacity:.1 } }
   #sharebtn { display:none; margin-top:12px; }
-  #quantum-badge { font-size:.8em; opacity:.7; margin-top:16px; }
+  #quantum-badge { font-size:.8em; opacity:.85; }
+  #qfooter { margin-top:32px; padding-bottom:24px; }
 </style>
 </head>
 <body>
 
+<canvas id="qfield" style="position:fixed; inset:0; z-index:-1;"></canvas>
+
 <h1>⚛️ The Q Word</h1>
 <p>Daily quantum-seeded word puzzle</p>
-
-<div id="qubits"></div>
 
 <input id="guess" maxlength="5" />
 <button onclick="submitGuess()">Guess</button>
@@ -44,18 +45,35 @@
 <div id="msg"></div>
 <button id="sharebtn" onclick="shareResult()">📋 Share result</button>
 
-<div id="quantum-badge">Today's seed: loading...</div>
+<div id="qfooter">
+  <div id="quantum-badge">Today's seed: loading...
+    <span onclick="toggleQinfo()" style="display:inline-block; width:18px; height:18px; line-height:18px; border:1px solid #7fdcff; border-radius:50%; font-size:12px; cursor:pointer; margin-left:6px; color:#7fdcff;">i</span>
+  </div>
+  <div id="qubits"></div>
+  <div style="font-size:.7em; opacity:.55;">live measurement from IBM Quantum hardware</div>
+</div>
+
+<div id="qinfo" style="display:none; position:fixed; inset:0; background:rgba(4,6,14,.88); z-index:10;" onclick="toggleQinfo()">
+  <div style="max-width:420px; margin:12vh auto; background:#141b33; border:2px solid #3a4a7a; border-radius:12px; padding:24px; text-align:left; font-size:15px; line-height:1.5;" onclick="event.stopPropagation()">
+    <h3 style="margin-top:0;">⚛️ How today's word is chosen</h3>
+    <p>Every day, a script runs a small experiment on a <b>real IBM quantum computer</b>: 8 qubits are placed in superposition — genuinely both 0 and 1 at once — then measured.</p>
+    <p>The measurement collapses them into the 8 digits shown in the footer. That bitstring becomes today's seed, which selects the secret word. No human, and no ordinary computer, decides it — quantum mechanics does.</p>
+    <p style="opacity:.7; font-size:13px;">The badge shows which IBM machine ran today's experiment, and each seed is verifiable via its IBM job ID.</p>
+    <p style="text-align:center; margin-bottom:0;"><button onclick="toggleQinfo()">Got it</button></p>
+  </div>
+</div>
 
 <script>
+// ===================== GAME =====================
 const WORDS = [
   "orbit","phase","quark","laser","field",
   "force","decay","pulse","gauge","spine",
   "chaos","light","prism","trace","stone"
 ].filter(w => w.length === 5);
 
-let target = null, attempts = [], done = false, backendName = "quantum", seedDate = "";
+let target = null, attempts = [], done = false,
+    backendName = "quantum", seedDate = "";
 
-// ---- fallback if seed.json unreachable ----
 function dateSeed() {
   const t = new Date().toISOString().slice(0,10);
   let h = 0;
@@ -63,23 +81,23 @@ function dateSeed() {
   return { seed: h, bits: (h % 256).toString(2).padStart(8,"0") };
 }
 
-// ---- load REAL quantum seed, start game ----
 fetch("seed.json").then(r => r.json()).then(d => {
   startGame(d.seed, d.quantum_bits, d.backend || "quantum", d.date || "");
+  buildField(d.quantum_bits || "10101010", d.seed || 12345);
 }).catch(() => {
   const f = dateSeed();
   startGame(f.seed, f.bits, "quantum (offline)", "");
+  buildField(f.bits, f.seed);
 });
 
 function startGame(seed, bits, backend, date) {
   target = WORDS[seed % WORDS.length];
   backendName = backend; seedDate = date;
-  document.getElementById("quantum-badge").textContent =
-    "Today's seed: " + backend + (date ? " · " + date : "");
+  document.getElementById("quantum-badge").firstChild.textContent =
+    "Today's seed: " + backend + (date ? " · " + date : "") + " ";
   renderQubits(bits);
 }
 
-// ---- qubit collapse animation ----
 function renderQubits(bits) {
   const box = document.getElementById("qubits");
   box.innerHTML = "";
@@ -87,9 +105,14 @@ function renderQubits(bits) {
     const q = document.createElement("div");
     q.className = "qubit"; q.textContent = "ψ";
     box.appendChild(q);
-    setTimeout(() => { q.classList.add("collapsed"); q.textContent = b; blip(440 + i*60); },
-      600 + i*220);
+    setTimeout(() => { q.classList.add("collapsed"); q.textContent = b;
+      blip(440 + i*60); }, 600 + i*220);
   });
+}
+
+function toggleQinfo(){
+  const m = document.getElementById("qinfo");
+  m.style.display = (m.style.display === "none") ? "block" : "none";
 }
 
 // ---- tiny synth sounds ----
@@ -140,44 +163,4 @@ function submitGuess() {
   } else if (attempts.length === 6) {
     done = true;
     msg.textContent = "Game over. Word was: " + target;
-    blip(160, .3, "sawtooth");
-    document.getElementById("sharebtn").style.display = "inline-block";
-  }
-}
-document.getElementById("guess").addEventListener("keydown",
-  e => { if (e.key === "Enter") submitGuess(); });
-
-// ---- win effects ----
-function winFanfare() {
-  [523, 659, 784, 1047].forEach((f,i) => setTimeout(() => blip(f, .12, "triangle", .06), i*120));
-}
-function confetti() {
-  const emo = ["⚛️","🟩","✨","🎉","🟨"];
-  for (let i = 0; i < 36; i++) {
-    const s = document.createElement("span");
-    s.className = "confetti";
-    s.textContent = emo[i % emo.length];
-    s.style.left = Math.random()*100 + "vw";
-    s.style.animationDelay = (Math.random()*0.7) + "s";
-    document.body.appendChild(s);
-    setTimeout(() => s.remove(), 3200);
-  }
-}
-
-// ---- share ----
-function shareResult() {
-  const won = attempts.length && attempts[attempts.length-1] === "🟩🟩🟩🟩🟩";
-  const text = "The Q Word " + (seedDate || "") + " " +
-    (won ? attempts.length + "/6" : "X/6") +
-    "\nSeeded by " + backendName + " ⚛️\n\n" +
-    attempts.join("\n") + "\n\nhttps://theqword.netlify.app";
-  if (navigator.share) { navigator.share({ text }).catch(()=>{}); }
-  else {
-    navigator.clipboard.writeText(text).then(() =>
-      document.getElementById("msg").textContent = "Copied! Paste anywhere 📋");
-  }
-}
-</script>
-
-</body>
-</html>
+    blip(160
