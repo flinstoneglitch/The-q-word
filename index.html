@@ -53,6 +53,23 @@
 
 
 
+
+<style id="qword-readable-card">
+  body.qentropy-bing-bg > *:not(#qentropy-bg-credit){
+    position: relative;
+    z-index: 1;
+  }
+
+  body.qentropy-bing-bg .container,
+  body.qentropy-bing-bg main,
+  body.qentropy-bing-bg #app{
+    background: rgba(0,0,0,.28) !important;
+    border-radius: 24px !important;
+    padding: 24px !important;
+    backdrop-filter: blur(2px);
+  }
+</style>
+
 </head>
 
 <body>
@@ -487,7 +504,7 @@ function submitGuess() {
     z-index: -1;
     background:
       radial-gradient(circle at 50% 20%, rgba(255,77,255,.16), transparent 34%),
-      linear-gradient(rgba(4,4,18,.72), rgba(4,4,18,.88));
+      linear-gradient(rgba(4,4,18,.18), rgba(4,4,18,.34));
     pointer-events: none;
   }
 
@@ -564,7 +581,7 @@ function submitGuess() {
       document.body.classList.add("qentropy-bing-bg");
 
       document.body.style.backgroundImage =
-        "linear-gradient(rgba(4,4,18,.72), rgba(4,4,18,.88)), url('" +
+        "linear-gradient(rgba(4,4,18,.28), rgba(4,4,18,.48)), url('" +
         bg.image_url +
         "')";
 
