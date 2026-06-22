@@ -276,9 +276,12 @@ function submitGuess() {
 
 
 
+
+
+
 <style id="qentropy-final-bit-size">
   #qentropy-bitstream {
-    margin-top: 10px !important;
+    margin-top: 8px !important;
     gap: 5px !important;
   }
 
@@ -291,7 +294,7 @@ function submitGuess() {
   }
 </style>
 
-<script id="qentropy-remove-only-second-hint-row-final">
+<script id="qentropy-remove-second-row-for-real">
 (function(){
   function visible(el){
     if (!el) return false;
@@ -306,116 +309,102 @@ function submitGuess() {
     );
   }
 
-  function squareLike(el){
-    if (!visible(el)) return false;
-    if (el.closest("#qentropy-bitstream")) return false;
-
-    const r = el.getBoundingClientRect();
-    const cs = getComputedStyle(el);
-
-    return (
-      r.width >= 12 &&
-      r.width <= 55 &&
-      r.height >= 12 &&
-      r.height <= 55 &&
-      Math.abs(r.width - r.height) <= 16 &&
-      (
-        cs.backgroundColor !== "rgba(0, 0, 0, 0)" ||
-        cs.borderColor !== "rgba(0, 0, 0, 0)" ||
-        cs.boxShadow !== "none"
-      )
-    );
+  function forceHide(el){
+    if (!el || el === document.body || el === document.documentElement) return;
+    el.setAttribute("data-qentropy-hidden-second-row", "true");
+    el.style.setProperty("display", "none", "important");
+    el.style.setProperty("visibility", "hidden", "important");
+    el.style.setProperty("opacity", "0", "important");
+    el.style.setProperty("height", "0", "important");
+    el.style.setProperty("max-height", "0", "important");
+    el.style.setProperty("margin", "0", "important");
+    el.style.setProperty("padding", "0", "important");
+    el.style.setProperty("overflow", "hidden", "important");
   }
 
-  function closestRowContainer(box){
-    let el = box;
-
-    for (let i = 0; i < 6 && el && el !== document.body; i++, el = el.parentElement) {
-      const r = el.getBoundingClientRect();
-      const squares = Array.from(el.querySelectorAll("*")).filter(squareLike);
-
-      if (
-        squares.length >= 5 &&
-        r.width <= 320 &&
-        r.height <= 120
-      ) {
-        return el;
-      }
-    }
-
-    return box;
-  }
-
-  function cleanup(){
-    const powered = Array.from(document.querySelectorAll("*"))
+  function clean(){
+    const powered = Array.from(document.querySelectorAll("body *"))
+      .filter(visible)
       .find(el => /Powered by QeNTROPY Engine/i.test(el.textContent || ""));
 
     if (!powered) return;
 
     const poweredTop = powered.getBoundingClientRect().top;
-
-    const boxes = Array.from(document.querySelectorAll("*"))
-      .filter(squareLike)
-      .filter(el => {
-        const r = el.getBoundingClientRect();
-        return r.top < poweredTop && r.top > 180;
-      });
-
-    const rows = [];
-
-    boxes.forEach(box => {
-      const top = Math.round(box.getBoundingClientRect().top / 12) * 12;
-      let row = rows.find(r => Math.abs(r.top - top) <= 12);
-
-      if (!row) {
-        row = { top, boxes: [] };
-        rows.push(row);
-      }
-
-      row.boxes.push(box);
-    });
-
-    rows.sort((a,b) => a.top - b.top);
-
-    const realRows = rows.filter(r => r.boxes.length >= 4);
-
-    if (realRows.length < 2) return;
-
-    const topRow = realRows[0];
-    const secondRow = realRows[1];
-
-    topRow.boxes.forEach(box => {
-      const c = closestRowContainer(box);
-      c.style.display = "";
-      c.style.visibility = "";
-      c.style.opacity = "";
-      c.style.height = "";
-      c.style.overflow = "";
-    });
-
-    secondRow.boxes.forEach(box => {
-      const c = closestRowContainer(box);
-      c.style.display = "none";
-      c.style.visibility = "hidden";
-      c.style.opacity = "0";
-      c.style.height = "0";
-      c.style.margin = "0";
-      c.style.padding = "0";
-      c.style.overflow = "hidden";
-    });
+    const centerX = window.innerWidth / 2;
 
     const qbits = document.getElementById("qentropy-bitstream");
-    if (qbits && powered) {
+
+    if (qbits) {
+      qbits.querySelectorAll("div").forEach(box => {
+        box.style.setProperty("width", "21px", "important");
+        box.style.setProperty("height", "21px", "important");
+        box.style.setProperty("font-size", "12px", "important");
+        box.style.setProperty("border-radius", "5px", "important");
+        box.style.setProperty("border-width", "1px", "important");
+      });
+
       powered.insertAdjacentElement("afterend", qbits);
     }
+
+    const candidates = Array.from(document.querySelectorAll("div, canvas, svg"))
+      .filter(el => {
+        if (!visible(el)) return false;
+        if (el.id === "qentropy-bitstream") return false;
+        if (el.closest("#qentropy-bitstream")) return false;
+        if (el.contains(powered)) return false;
+        if (el.querySelector("input, button")) return false;
+        if (el.closest("button")) return false;
+
+        const r = el.getBoundingClientRect();
+        const midX = r.left + r.width / 2;
+
+        return (
+          r.top > 250 &&
+          r.bottom < poweredTop - 2 &&
+          Math.abs(midX - centerX) < 190 &&
+          r.width >= 45 &&
+          r.width <= 280 &&
+          r.height >= 16 &&
+          r.height <= 100
+        );
+      })
+      .sort((a,b) => b.getBoundingClientRect().top - a.getBoundingClientRect().top);
+
+    if (!candidates.length) return;
+
+    let victim = candidates[0];
+
+    while (
+      victim.parentElement &&
+      victim.parentElement !== document.body &&
+      victim.parentElement !== document.documentElement
+    ) {
+      const r = victim.getBoundingClientRect();
+      const pr = victim.parentElement.getBoundingClientRect();
+
+      if (
+        Math.abs(pr.top - r.top) <= 25 &&
+        pr.width <= 320 &&
+        pr.height <= 120 &&
+        !victim.parentElement.contains(powered) &&
+        !victim.parentElement.querySelector("input, button") &&
+        !victim.parentElement.closest("#qentropy-bitstream")
+      ) {
+        victim = victim.parentElement;
+      } else {
+        break;
+      }
+    }
+
+    forceHide(victim);
   }
 
-  window.addEventListener("load", cleanup);
-  setTimeout(cleanup, 100);
-  setTimeout(cleanup, 300);
-  setTimeout(cleanup, 800);
-  setTimeout(cleanup, 1600);
-  setInterval(cleanup, 1500);
+  window.addEventListener("load", clean);
+  setTimeout(clean, 50);
+  setTimeout(clean, 250);
+  setTimeout(clean, 750);
+  setTimeout(clean, 1500);
+  setInterval(clean, 1000);
 })();
 </script>
 
