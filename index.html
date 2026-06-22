@@ -48,48 +48,8 @@
     }
   </style>
 
-<style id="qentropy-cleanup">
-
-#qentropy-bitstream div{
-  width:21px !important;
-  height:21px !important;
-  font-size:12px !important;
-  border-radius:5px !important;
-  border-width:1px !important;
-}
-
-/* hide the old duplicate yellow blocks */
-body > div[style*="background:#334"],
-body > div[style*="background: #334"]{
-  display:none !important;
-}
-
-</style>
 
 
-<style id="qentropy-layout-fix">
-
-/* remove old duplicate hint blocks */
-body > div[style*="background:#334"],
-body > div[style*="background: #334"]{
-  display:none !important;
-}
-
-/* move qentropy section lower */
-#qentropy-bitstream{
-  margin-top:12px !important;
-}
-
-/* shrink quantum blocks */
-#qentropy-bitstream div{
-  width:20px !important;
-  height:20px !important;
-  font-size:11px !important;
-  border-radius:4px !important;
-  border-width:1px !important;
-}
-
-</style>
 
 </head>
 
@@ -312,146 +272,150 @@ function submitGuess() {
 </script>
 
 
-<script id="qentropy-remove-second-hint-row">
-(function(){
-  function looksLikeSmallHintRow(el){
-    if (!el || el.id === "qentropy-bitstream") return false;
-    if (el.closest && el.closest("#qentropy-bitstream")) return false;
 
-    const kids = Array.from(el.children || []);
-    if (kids.length !== 5) return false;
 
-    return kids.every(k => {
-      const r = k.getBoundingClientRect();
-      return r.width >= 10 && r.width <= 55 &&
-             r.height >= 10 && r.height <= 55;
-    });
+
+
+<style id="qentropy-final-bit-size">
+  #qentropy-bitstream {
+    margin-top: 10px !important;
+    gap: 5px !important;
   }
 
-  function cleanup(){
-    const all = Array.from(document.querySelectorAll("div"));
-    const rows = all.filter(looksLikeSmallHintRow);
+  #qentropy-bitstream div {
+    width: 21px !important;
+    height: 21px !important;
+    font-size: 12px !important;
+    border-radius: 5px !important;
+    border-width: 1px !important;
+  }
+</style>
 
-    if (rows.length <= 1) return;
-
-    rows.sort((a,b) =>
-      a.getBoundingClientRect().top - b.getBoundingClientRect().top
+<script id="qentropy-remove-only-second-hint-row-final">
+(function(){
+  function visible(el){
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return (
+      r.width > 8 &&
+      r.height > 8 &&
+      cs.display !== "none" &&
+      cs.visibility !== "hidden" &&
+      Number(cs.opacity || 1) !== 0
     );
-
-    rows.forEach((row, i) => {
-      if (i === 0) return;   // KEEP TOP HINT ROW
-      row.remove();          // REMOVE SECOND / DUPLICATE HINT ROW
-    });
-
-    const qbits = document.getElementById("qentropy-bitstream");
-    const powered =
-      Array.from(document.querySelectorAll("div"))
-      .find(el => el.textContent.includes("Powered by QeNTROPY"));
-
-    if (qbits && powered && powered.parentNode) {
-      powered.insertAdjacentElement("afterend", qbits);
-    }
   }
 
-  window.addEventListener("load", cleanup);
-  setTimeout(cleanup, 250);
-  setTimeout(cleanup, 1000);
-})();
-</script>
+  function squareLike(el){
+    if (!visible(el)) return false;
+    if (el.closest("#qentropy-bitstream")) return false;
 
-
-<script id="nuke-second-small-hint-row">
-(function(){
-  function isQEntropyBits(el){
-    return el.id === "qentropy-bitstream" || el.closest("#qentropy-bitstream");
-  }
-
-  function boxScore(el){
     const r = el.getBoundingClientRect();
     const cs = getComputedStyle(el);
 
-    const square =
-      r.width >= 14 &&
-      r.width <= 60 &&
-      r.height >= 14 &&
-      r.height <= 60 &&
-      Math.abs(r.width - r.height) <= 12;
-
-    const visible =
-      cs.display !== "none" &&
-      cs.visibility !== "hidden" &&
-      r.opacity !== 0 &&
-      r.width > 0 &&
-      r.height > 0;
-
-    const colored =
-      cs.backgroundColor !== "rgba(0, 0, 0, 0)" ||
-      cs.borderColor !== "rgba(0, 0, 0, 0)" ||
-      cs.boxShadow !== "none";
-
-    return square && visible && colored;
+    return (
+      r.width >= 12 &&
+      r.width <= 55 &&
+      r.height >= 12 &&
+      r.height <= 55 &&
+      Math.abs(r.width - r.height) <= 16 &&
+      (
+        cs.backgroundColor !== "rgba(0, 0, 0, 0)" ||
+        cs.borderColor !== "rgba(0, 0, 0, 0)" ||
+        cs.boxShadow !== "none"
+      )
+    );
   }
 
-  function findSmallHintRows(){
-    const divs = Array.from(document.querySelectorAll("div"))
-      .filter(el => !isQEntropyBits(el));
+  function closestRowContainer(box){
+    let el = box;
 
-    const rows = [];
+    for (let i = 0; i < 6 && el && el !== document.body; i++, el = el.parentElement) {
+      const r = el.getBoundingClientRect();
+      const squares = Array.from(el.querySelectorAll("*")).filter(squareLike);
 
-    for (const el of divs){
-      const kids = Array.from(el.children || []);
-      const boxes = kids.filter(boxScore);
-
-      if (boxes.length === 5){
-        const r = el.getBoundingClientRect();
-
-        if (
-          r.top > 250 &&
-          r.top < window.innerHeight * 0.75 &&
-          r.width < 260 &&
-          r.height < 90
-        ){
-          rows.push(el);
-        }
+      if (
+        squares.length >= 5 &&
+        r.width <= 320 &&
+        r.height <= 120
+      ) {
+        return el;
       }
     }
 
-    rows.sort((a,b) =>
-      a.getBoundingClientRect().top - b.getBoundingClientRect().top
-    );
-
-    return rows;
+    return box;
   }
 
   function cleanup(){
-    const rows = findSmallHintRows();
+    const powered = Array.from(document.querySelectorAll("*"))
+      .find(el => /Powered by QeNTROPY Engine/i.test(el.textContent || ""));
 
-    rows.forEach((row, index) => {
-      if (index === 0) {
-        row.style.display = "";
-        row.style.visibility = "";
-        row.style.opacity = "";
-        return;
+    if (!powered) return;
+
+    const poweredTop = powered.getBoundingClientRect().top;
+
+    const boxes = Array.from(document.querySelectorAll("*"))
+      .filter(squareLike)
+      .filter(el => {
+        const r = el.getBoundingClientRect();
+        return r.top < poweredTop && r.top > 180;
+      });
+
+    const rows = [];
+
+    boxes.forEach(box => {
+      const top = Math.round(box.getBoundingClientRect().top / 12) * 12;
+      let row = rows.find(r => Math.abs(r.top - top) <= 12);
+
+      if (!row) {
+        row = { top, boxes: [] };
+        rows.push(row);
       }
 
-      row.remove();
+      row.boxes.push(box);
     });
 
-    const powered = Array.from(document.querySelectorAll("div"))
-      .find(el => /Powered by QeNTROPY/i.test(el.textContent));
+    rows.sort((a,b) => a.top - b.top);
+
+    const realRows = rows.filter(r => r.boxes.length >= 4);
+
+    if (realRows.length < 2) return;
+
+    const topRow = realRows[0];
+    const secondRow = realRows[1];
+
+    topRow.boxes.forEach(box => {
+      const c = closestRowContainer(box);
+      c.style.display = "";
+      c.style.visibility = "";
+      c.style.opacity = "";
+      c.style.height = "";
+      c.style.overflow = "";
+    });
+
+    secondRow.boxes.forEach(box => {
+      const c = closestRowContainer(box);
+      c.style.display = "none";
+      c.style.visibility = "hidden";
+      c.style.opacity = "0";
+      c.style.height = "0";
+      c.style.margin = "0";
+      c.style.padding = "0";
+      c.style.overflow = "hidden";
+    });
 
     const qbits = document.getElementById("qentropy-bitstream");
-
-    if (powered && qbits) {
+    if (qbits && powered) {
       powered.insertAdjacentElement("afterend", qbits);
     }
   }
 
   window.addEventListener("load", cleanup);
   setTimeout(cleanup, 100);
-  setTimeout(cleanup, 500);
-  setTimeout(cleanup, 1200);
-  setInterval(cleanup, 2000);
+  setTimeout(cleanup, 300);
+  setTimeout(cleanup, 800);
+  setTimeout(cleanup, 1600);
+  setInterval(cleanup, 1500);
 })();
 </script>
 
