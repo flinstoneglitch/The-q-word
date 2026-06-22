@@ -51,6 +51,33 @@
 
 
 
+
+<style id="qentropy-bing-background-style">
+  body.qentropy-bing-bg{
+    background-size: cover !important;
+    background-position: center center !important;
+    background-attachment: fixed !important;
+    background-repeat: no-repeat !important;
+  }
+
+  #qentropy-bg-credit{
+    position: fixed;
+    right: 12px;
+    bottom: 8px;
+    z-index: 9999;
+    max-width: 360px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: rgba(0,0,0,.55);
+    color: #dfffd6;
+    font-size: 11px;
+    font-family: monospace;
+    text-align: right;
+    pointer-events: none;
+    opacity: .82;
+  }
+</style>
+
 </head>
 
 <body>
@@ -169,6 +196,70 @@ function addQentropyBadge() {
   const footer = document.querySelector(".seed-footer") || document.body;
   footer.appendChild(badge);
 }
+
+
+function qentropySeedNumber(seed) {
+  const raw = String(seed || "");
+
+  const hex = raw.replace(/[^a-fA-F0-9]/g, "");
+  if (hex.length >= 2) {
+    return parseInt(hex.slice(0, 8), 16) >>> 0;
+  }
+
+  const bits = raw.replace(/[^01]/g, "");
+  if (bits.length >= 2) {
+    return parseInt(bits.slice(0, 32), 2) >>> 0;
+  }
+
+  return fallbackSeed();
+}
+
+async function setQuantumBingBackground(seed) {
+  try {
+    const response = await fetch(
+      "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=8&mkt=en-US"
+    );
+
+    const data = await response.json();
+    const images = data.images || [];
+
+    if (!images.length) return;
+
+    const n = qentropySeedNumber(seed);
+    const image = images[n % images.length];
+
+    const imageUrl =
+      image.url && image.url.startsWith("http")
+        ? image.url
+        : "https://www.bing.com" + image.url;
+
+    document.body.classList.add("qentropy-bing-bg");
+
+    document.body.style.backgroundImage =
+      `linear-gradient(
+        rgba(4, 4, 18, .72),
+        rgba(4, 4, 18, .88)
+      ), url("${imageUrl}")`;
+
+    let credit = document.getElementById("qentropy-bg-credit");
+
+    if (!credit) {
+      credit = document.createElement("div");
+      credit.id = "qentropy-bg-credit";
+      document.body.appendChild(credit);
+    }
+
+    credit.textContent =
+      `Daily background selected by QeNTROPY seed · ${image.copyright || "Bing daily image"}`;
+
+    console.log("QeNTROPY Background:", imageUrl);
+    console.log("QeNTROPY Background Index:", n % images.length);
+
+  } catch (err) {
+    console.log("Bing daily background unavailable; keeping default background.");
+  }
+}
+
 
 async function loadQEntropyWord() {
   const today = new Date().toISOString().slice(0,10);
