@@ -359,5 +359,101 @@ function submitGuess() {
 })();
 </script>
 
+
+<script id="nuke-second-small-hint-row">
+(function(){
+  function isQEntropyBits(el){
+    return el.id === "qentropy-bitstream" || el.closest("#qentropy-bitstream");
+  }
+
+  function boxScore(el){
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+
+    const square =
+      r.width >= 14 &&
+      r.width <= 60 &&
+      r.height >= 14 &&
+      r.height <= 60 &&
+      Math.abs(r.width - r.height) <= 12;
+
+    const visible =
+      cs.display !== "none" &&
+      cs.visibility !== "hidden" &&
+      r.opacity !== 0 &&
+      r.width > 0 &&
+      r.height > 0;
+
+    const colored =
+      cs.backgroundColor !== "rgba(0, 0, 0, 0)" ||
+      cs.borderColor !== "rgba(0, 0, 0, 0)" ||
+      cs.boxShadow !== "none";
+
+    return square && visible && colored;
+  }
+
+  function findSmallHintRows(){
+    const divs = Array.from(document.querySelectorAll("div"))
+      .filter(el => !isQEntropyBits(el));
+
+    const rows = [];
+
+    for (const el of divs){
+      const kids = Array.from(el.children || []);
+      const boxes = kids.filter(boxScore);
+
+      if (boxes.length === 5){
+        const r = el.getBoundingClientRect();
+
+        if (
+          r.top > 250 &&
+          r.top < window.innerHeight * 0.75 &&
+          r.width < 260 &&
+          r.height < 90
+        ){
+          rows.push(el);
+        }
+      }
+    }
+
+    rows.sort((a,b) =>
+      a.getBoundingClientRect().top - b.getBoundingClientRect().top
+    );
+
+    return rows;
+  }
+
+  function cleanup(){
+    const rows = findSmallHintRows();
+
+    rows.forEach((row, index) => {
+      if (index === 0) {
+        row.style.display = "";
+        row.style.visibility = "";
+        row.style.opacity = "";
+        return;
+      }
+
+      row.remove();
+    });
+
+    const powered = Array.from(document.querySelectorAll("div"))
+      .find(el => /Powered by QeNTROPY/i.test(el.textContent));
+
+    const qbits = document.getElementById("qentropy-bitstream");
+
+    if (powered && qbits) {
+      powered.insertAdjacentElement("afterend", qbits);
+    }
+  }
+
+  window.addEventListener("load", cleanup);
+  setTimeout(cleanup, 100);
+  setTimeout(cleanup, 500);
+  setTimeout(cleanup, 1200);
+  setInterval(cleanup, 2000);
+})();
+</script>
+
 </body>
 </html>
