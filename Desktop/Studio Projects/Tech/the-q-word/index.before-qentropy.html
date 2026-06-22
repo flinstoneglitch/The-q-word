@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>The Q Word</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b0f1a;
+      color: white;
+      text-align: center;
+      padding-top: 40px;
+    }
+
+    h1 { margin-bottom: 5px; }
+
+    input {
+      font-size: 20px;
+      padding: 10px;
+      width: 160px;
+      text-align: center;
+      text-transform: lowercase;
+    }
+
+    button {
+      padding: 10px 15px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+
+    .row {
+      font-size: 24px;
+      letter-spacing: 4px;
+      margin: 8px;
+    }
+
+    #board {
+      margin-top: 20px;
+    }
+
+    #share {
+      margin-top: 20px;
+      white-space: pre;
+      background: #1a1f33;
+      display: inline-block;
+      padding: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>⚛️ The Q Word</h1>
+<p>Daily quantum-seeded word puzzle</p>
+
+<input id="guess" maxlength="5" />
+<button onclick="submitGuess()">Guess</button>
+
+<div id="board"></div>
+<div id="share"></div>
+
+<script>
+
+// --------------------
+// WORD LIST
+// --------------------
+const WORDS = [
+  "orbit","phase","quark","laser","field",
+  "force","decay","pulse","gauge","spine",
+  "entropy","fusion","vector","lattice",
+  "chaos","light","prism","trace","stone"
+].filter(w => w.length === 5);
+
+// --------------------
+// DAILY SEED (simple deterministic "quantum-like" seed)
+// --------------------
+function seed() {
+  const today = new Date().toISOString().slice(0,10);
+  let h = 0;
+  for (let i = 0; i < today.length; i++) {
+    h = (h * 31 + today.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+
+// --------------------
+// PICK WORD
+// --------------------
+const target = WORDS[seed() % WORDS.length];
+
+// --------------------
+// SCORE FUNCTION
+// --------------------
+function scoreGuess(g, t) {
+  let result = Array(5).fill("⬛");
+  let temp = t.split("");
+
+  for (let i = 0; i < 5; i++) {
+    if (g[i] === t[i]) {
+      result[i] = "🟩";
+      temp[i] = null;
+    }
+  }
+
+  for (let i = 0; i < 5; i++) {
+    if (result[i] === "⬛" && temp.includes(g[i])) {
+      result[i] = "🟨";
+      temp[temp.indexOf(g[i])] = null;
+    }
+  }
+
+  return result.join("");
+}
+
+// --------------------
+// GAME STATE
+// --------------------
+let attempts = [];
+
+// --------------------
+// SUBMIT GUESS
+// --------------------
+function submitGuess() {
+  const input = document.getElementById("guess");
+  const guess = input.value.toLowerCase();
+
+  if (guess.length !== 5) return;
+
+  const score = scoreGuess(guess, target);
+  attempts.push(score);
+
+  document.getElementById("board").innerHTML =
+    attempts.map(a => `<div class="row">${a}</div>`).join("");
+
+  document.getElementById("share").innerText = attempts.join("\n");
+
+  input.value = "";
+
+  if (guess === target) {
+    alert("Quantum collapse complete!");
+  }
+
+  if (attempts.length === 6) {
+    alert("Game over. Word was: " + target);
+  }
+}
+
+</script>
+
+</body>
+</html>
