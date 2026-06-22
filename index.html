@@ -52,31 +52,6 @@
 
 
 
-<style id="qentropy-bing-background-style">
-  body.qentropy-bing-bg{
-    background-size: cover !important;
-    background-position: center center !important;
-    background-attachment: fixed !important;
-    background-repeat: no-repeat !important;
-  }
-
-  #qentropy-bg-credit{
-    position: fixed;
-    right: 12px;
-    bottom: 8px;
-    z-index: 9999;
-    max-width: 360px;
-    padding: 6px 10px;
-    border-radius: 10px;
-    background: rgba(0,0,0,.55);
-    color: #dfffd6;
-    font-size: 11px;
-    font-family: monospace;
-    text-align: right;
-    pointer-events: none;
-    opacity: .82;
-  }
-</style>
 
 </head>
 
@@ -493,6 +468,130 @@ function submitGuess() {
   setTimeout(cleanup, 750);
   setTimeout(cleanup, 1500);
   setInterval(cleanup, 1000);
+})();
+</script>
+
+
+<style id="qentropy-final-bing-background">
+  body.qentropy-bing-bg {
+    background-size: cover !important;
+    background-position: center center !important;
+    background-attachment: fixed !important;
+    background-repeat: no-repeat !important;
+  }
+
+  body.qentropy-bing-bg::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 50% 20%, rgba(255,77,255,.16), transparent 34%),
+      linear-gradient(rgba(4,4,18,.72), rgba(4,4,18,.88));
+    pointer-events: none;
+  }
+
+  #qentropy-bg-credit {
+    position: fixed;
+    right: 12px;
+    bottom: 8px;
+    z-index: 99999;
+    max-width: 420px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: rgba(0,0,0,.62);
+    color: #dfffd6;
+    font-size: 11px;
+    font-family: monospace;
+    text-align: right;
+    opacity: .82;
+  }
+</style>
+
+<script id="qentropy-bing-background-final">
+(function(){
+  const API = "https://q-runtime.onrender.com";
+
+  function today(){
+    return new Date().toISOString().slice(0,10);
+  }
+
+  function cachedSeed(){
+    return localStorage.getItem("qentropy_daily_seed_" + today());
+  }
+
+  async function getSeed(){
+    let seed = cachedSeed();
+
+    if (seed) return seed;
+
+    const response = await fetch(API + "/api/seed?source=hybrid", {
+      headers: {
+        "x-api-key": "qentropy-demo-key"
+      }
+    });
+
+    const data = await response.json();
+    seed = data.seed || data.seed_hex || "";
+
+    if (seed) {
+      localStorage.setItem("qentropy_daily_seed_" + today(), seed);
+    }
+
+    return seed;
+  }
+
+  async function setBackground(){
+    try {
+      const seed = await getSeed();
+
+      if (!seed) {
+        console.log("QeNTROPY background: no seed found");
+        return;
+      }
+
+      const response = await fetch(
+        API + "/api/bing-background?seed=" + encodeURIComponent(seed)
+      );
+
+      const bg = await response.json();
+
+      if (!bg.ok || !bg.image_url) {
+        console.log("QeNTROPY background unavailable:", bg);
+        return;
+      }
+
+      document.body.classList.add("qentropy-bing-bg");
+
+      document.body.style.backgroundImage =
+        "linear-gradient(rgba(4,4,18,.72), rgba(4,4,18,.88)), url('" +
+        bg.image_url +
+        "')";
+
+      let credit = document.getElementById("qentropy-bg-credit");
+
+      if (!credit) {
+        credit = document.createElement("div");
+        credit.id = "qentropy-bg-credit";
+        document.body.appendChild(credit);
+      }
+
+      credit.textContent =
+        "Daily background selected by QeNTROPY seed · " +
+        (bg.copyright || bg.title || "Bing Daily Image");
+
+      console.log("QeNTROPY Bing Background:", bg.image_url);
+      console.log("QeNTROPY Background Seed:", seed);
+      console.log("QeNTROPY Background Index:", bg.index);
+
+    } catch (err) {
+      console.log("QeNTROPY background error:", err);
+    }
+  }
+
+  window.addEventListener("load", setBackground);
+  setTimeout(setBackground, 250);
+  setTimeout(setBackground, 1200);
 })();
 </script>
 
