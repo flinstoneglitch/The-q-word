@@ -66,6 +66,31 @@ body > div[style*="background: #334"]{
 
 </style>
 
+
+<style id="qentropy-layout-fix">
+
+/* remove old duplicate hint blocks */
+body > div[style*="background:#334"],
+body > div[style*="background: #334"]{
+  display:none !important;
+}
+
+/* move qentropy section lower */
+#qentropy-bitstream{
+  margin-top:12px !important;
+}
+
+/* shrink quantum blocks */
+#qentropy-bitstream div{
+  width:20px !important;
+  height:20px !important;
+  font-size:11px !important;
+  border-radius:4px !important;
+  border-width:1px !important;
+}
+
+</style>
+
 </head>
 
 <body>
@@ -163,7 +188,10 @@ function drawBitBlocks(seed) {
     wrap.appendChild(box);
   }
 
-  footer.appendChild(wrap);
+  
+const powered=document.querySelector('[id="qentropy-hardware"]') || footer;
+powered.parentNode.appendChild(wrap);
+
 }
 
 function addQentropyBadge() {
@@ -281,6 +309,54 @@ function submitGuess() {
   }
 }
 
+</script>
+
+
+<script id="qentropy-remove-second-hint-row">
+(function(){
+  function looksLikeSmallHintRow(el){
+    if (!el || el.id === "qentropy-bitstream") return false;
+    if (el.closest && el.closest("#qentropy-bitstream")) return false;
+
+    const kids = Array.from(el.children || []);
+    if (kids.length !== 5) return false;
+
+    return kids.every(k => {
+      const r = k.getBoundingClientRect();
+      return r.width >= 10 && r.width <= 55 &&
+             r.height >= 10 && r.height <= 55;
+    });
+  }
+
+  function cleanup(){
+    const all = Array.from(document.querySelectorAll("div"));
+    const rows = all.filter(looksLikeSmallHintRow);
+
+    if (rows.length <= 1) return;
+
+    rows.sort((a,b) =>
+      a.getBoundingClientRect().top - b.getBoundingClientRect().top
+    );
+
+    rows.forEach((row, i) => {
+      if (i === 0) return;   // KEEP TOP HINT ROW
+      row.remove();          // REMOVE SECOND / DUPLICATE HINT ROW
+    });
+
+    const qbits = document.getElementById("qentropy-bitstream");
+    const powered =
+      Array.from(document.querySelectorAll("div"))
+      .find(el => el.textContent.includes("Powered by QeNTROPY"));
+
+    if (qbits && powered && powered.parentNode) {
+      powered.insertAdjacentElement("afterend", qbits);
+    }
+  }
+
+  window.addEventListener("load", cleanup);
+  setTimeout(cleanup, 250);
+  setTimeout(cleanup, 1000);
+})();
 </script>
 
 </body>
