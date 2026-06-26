@@ -17,7 +17,7 @@ jobs:
         run: pip install qiskit qiskit-ibm-runtime
       - name: Generate new seed
         env:
-          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          IBM_QUANTUM_TOKEN: ${{ secrets.dZ3YZijq2SzfvxSBU9d9QhoRJ-psrOkRzDuf2mFudf0O }}
         run: python quantum_seed_job.py
       - name: Commit updated seed
         run: |
