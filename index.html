@@ -96,10 +96,14 @@ const WORDS = [
 ].filter(w => w.length === 5);
 
 // --------------------
-// DAILY SEED (simple deterministic "quantum-like" seed)
+// DAILY SEED helpers — all dates in America/Los_Angeles to match the server
 // --------------------
-function seed() {
-  const today = new Date().toISOString().slice(0,10);
+function getLADate() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+}
+
+function fallbackSeed() {
+  const today = getLADate();
   let h = 0;
   for (let i = 0; i < today.length; i++) {
     h = (h * 31 + today.charCodeAt(i)) >>> 0;
@@ -113,15 +117,6 @@ function seed() {
 
 let qentropyData = null;
 let target = WORDS[0];
-
-function fallbackSeed() {
-  const today = new Date().toISOString().slice(0,10);
-  let h = 0;
-  for (let i = 0; i < today.length; i++) {
-    h = (h * 31 + today.charCodeAt(i)) >>> 0;
-  }
-  return h;
-}
 
 function hexToBits(hex) {
   return hex
@@ -254,44 +249,62 @@ async function setQuantumBingBackground(seed) {
 
 
 async function loadQEntropyWord() {
-  const today = new Date().toISOString().slice(0,10);
-  const cacheKey = `qentropy_daily_seed_${today}`;
+  const today = getLADate();
+  const cacheKey = `qword_daily_${today}`;
 
-  let seed = localStorage.getItem(cacheKey);
-
+  // (a) QeNTROPY daily endpoint — stable seed cached once per LA calendar day
   try {
-    if (!seed) {
+    const cached = localStorage.getItem(cacheKey);
+    let seedData;
+
+    if (cached) {
+      seedData = JSON.parse(cached);
+    } else {
       const response = await fetch(
-        "https://q-runtime.onrender.com/api/seed?source=hybrid",
-        {
-          headers: {
-            "x-api-key": "qentropy-demo-key"
-          }
-        }
+        "https://q-runtime.onrender.com/api/daily-seed?app=qword"
       );
-
+      if (!response.ok) throw new Error("HTTP " + response.status);
       const data = await response.json();
-      qentropyData = data;
-      seed = data.seed;
-
-      localStorage.setItem(cacheKey, seed);
+      if (!data.ok || !data.seed) throw new Error("bad response");
+      seedData = data;
+      localStorage.setItem(cacheKey, JSON.stringify(seedData));
     }
 
-    const seedNumber = parseInt(seed.slice(0, 8), 16);
-    target = WORDS[seedNumber % WORDS.length];
+    qentropyData = seedData;
+    // seed_safe is ≤ 2^52 — safe for Number modulo
+    const wordIndex = seedData.seed_safe % WORDS.length;
+    target = WORDS[wordIndex];
 
-    drawBitBlocks(seed);
+    drawBitBlocks(seedData.seed);
     addQentropyBadge();
 
-    console.log("QeNTROPY Daily Seed:", seed);
-    console.log("Today's Word:", target);
+    console.log("Q Word seed source:", seedData);
+    return;
 
   } catch (err) {
-    const localSeed = fallbackSeed();
-    target = WORDS[localSeed % WORDS.length];
-
-    console.log("QeNTROPY unavailable, fallback word:", target);
+    console.log("QeNTROPY daily-seed unavailable:", err.message);
   }
+
+  // (b) Local seed.json — stale but deterministic
+  try {
+    const response = await fetch("seed.json");
+    if (!response.ok) throw new Error("seed.json HTTP " + response.status);
+    const data = await response.json();
+    if (!data.seed) throw new Error("seed.json missing seed field");
+    // seed is a 38-digit decimal integer — must use BigInt to avoid precision loss
+    const wordIndex = Number(BigInt(String(data.seed)) % BigInt(WORDS.length));
+    target = WORDS[wordIndex];
+    console.log("Q Word seed source: seed.json", { date: data.date, seed: String(data.seed) });
+    return;
+
+  } catch (err2) {
+    console.log("seed.json unavailable:", err2.message);
+  }
+
+  // (c) Deterministic LA-date hash — always cross-browser stable, never random
+  const localSeed = fallbackSeed();
+  target = WORDS[localSeed % WORDS.length];
+  console.log("Q Word seed source: local date hash", { date: today, seed: localSeed });
 }
 
 loadQEntropyWord();
@@ -530,11 +543,11 @@ function submitGuess() {
   const API = "https://q-runtime.onrender.com";
 
   function today(){
-    return new Date().toISOString().slice(0,10);
+    return new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
   }
 
   function cachedSeed(){
-    return localStorage.getItem("qentropy_daily_seed_" + today());
+    return localStorage.getItem("qentropy_bg_seed_" + today());
   }
 
   async function getSeed(){
@@ -542,17 +555,13 @@ function submitGuess() {
 
     if (seed) return seed;
 
-    const response = await fetch(API + "/api/seed?source=hybrid", {
-      headers: {
-        "x-api-key": "qentropy-demo-key"
-      }
-    });
+    const response = await fetch(API + "/api/daily-seed?app=qword");
 
     const data = await response.json();
-    seed = data.seed || data.seed_hex || "";
+    seed = data.seed || "";
 
     if (seed) {
-      localStorage.setItem("qentropy_daily_seed_" + today(), seed);
+      localStorage.setItem("qentropy_bg_seed_" + today(), seed);
     }
 
     return seed;
