@@ -2,7 +2,7 @@
 
 A daily word puzzle where the secret word is chosen by a **real IBM quantum computer**.
 
-**Play:** https://theqword.netlify.app
+**Play:** https://flinstoneglitch.github.io/The-q-word/
 
 ## How it works
 Every day, a GitHub Action runs an experiment on IBM Quantum hardware:
@@ -15,7 +15,7 @@ seed is verifiable via its IBM job ID, recorded in `seed.json`.
 - `index.html` — the entire game (vanilla JS, no frameworks)
 - `quantum_seed_job.py` — daily quantum experiment (Qiskit / IBM Runtime)
 - `.github/workflows/daily-seed.yml` — scheduled automation
-- Hosted on Netlify, auto-deployed from this repo
+- Hosted on GitHub Pages, auto-deployed from this repo
 
 ## Credits
 Created by Colin O'Reilly (Colin O'Reilly Studios / Artphorm),
