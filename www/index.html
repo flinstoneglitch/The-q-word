@@ -87,6 +87,7 @@
 
 <div id="board"></div>
 <div id="share"></div>
+<button id="share-btn" onclick="shareResult()" style="display:none; margin-top:14px;">📋 Share result</button>
 </div>
 
 <script>
@@ -315,6 +316,35 @@ async function loadQEntropyWord() {
 
 loadQEntropyWord();
 
+// ===================== NATIVE (CAPACITOR) =====================
+// No-ops on the plain web build — only fires inside the iOS app shell.
+function isNativeApp(){
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+function hapticImpact(style){
+  if(!isNativeApp()) return;
+  try{ window.Capacitor.Plugins.Haptics.impact({ style }); }catch(e){}
+}
+function hapticNotify(type){
+  if(!isNativeApp()) return;
+  try{ window.Capacitor.Plugins.Haptics.notification({ type }); }catch(e){}
+}
+
+function shareResult(){
+  const text = "⚛️ The Q Word\n" + attempts.join("\n") +
+    "\n\nhttps://flinstoneglitch.github.io/The-q-word/";
+  if (isNativeApp()) {
+    window.Capacitor.Plugins.Share.share({ text }).catch(()=>{});
+  } else if (navigator.share) {
+    navigator.share({ text }).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(text).then(()=>{
+      const btn = document.getElementById("share-btn");
+      if (btn) btn.textContent = "Copied! 📋";
+    });
+  }
+}
+
 // SCORE FUNCTION
 // --------------------
 function scoreGuess(g, t) {
@@ -359,14 +389,18 @@ function submitGuess() {
     attempts.map(a => `<div class="row">${a}</div>`).join("");
 
   document.getElementById("share").innerText = attempts.join("\n");
+  document.getElementById("share-btn").style.display = "inline-block";
 
   input.value = "";
+  hapticImpact("LIGHT");
 
   if (guess === target) {
+    hapticNotify("SUCCESS");
     alert("Quantum collapse complete!");
   }
 
   if (attempts.length === 6) {
+    if (guess !== target) hapticNotify("WARNING");
     alert("Game over. Word was: " + target);
   }
 }

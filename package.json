@@ -1,0 +1,28 @@
+{
+  "name": "the-q-word",
+  "version": "1.0.0",
+  "description": "A daily word puzzle where the secret word is chosen by a **real IBM quantum computer**.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flinstoneglitch/The-q-word.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/flinstoneglitch/The-q-word/issues"
+  },
+  "homepage": "https://github.com/flinstoneglitch/The-q-word#readme",
+  "dependencies": {
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/share": "^8.0.2"
+  }
+}
