@@ -13,7 +13,8 @@ hybrid entropy engine that mixes several sources together:
 - Amazon Braket — a real superposition-and-measure circuit run on Braket's SDK simulator
 - IBM Quantum hardware — real qubits in superposition, when IBM access is available
 
-The combined seed selects the word from a small curated pool, paints the
+The combined seed selects the word from a curated pool of 724 common
+five-letter words, paints the
 game's daily background image, and is displayed in-game along with its
 source. Every seed is recorded in `seed.json`.
 
