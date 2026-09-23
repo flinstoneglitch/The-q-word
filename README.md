@@ -1,20 +1,25 @@
 # ⚛️ The Q Word
 
-A daily word puzzle where the secret word is chosen by a **real IBM quantum computer**.
+A daily word puzzle where the secret word is chosen by quantum-sourced entropy.
 
 **Play:** https://flinstoneglitch.github.io/The-q-word/
 
 ## How it works
-Every day, a GitHub Action runs an experiment on IBM Quantum hardware:
-8 qubits are placed in superposition and measured. The resulting bitstring
-becomes the day's seed — selecting the word from a 5,757-word pool, painting
-the game's background, and displayed in-game with the backend name. Every
-seed is verifiable via its IBM job ID, recorded in `seed.json`.
+Every day, a scheduled GitHub Action fetches a fresh seed from **QeNTROPY**, a
+hybrid entropy engine that mixes several sources together:
+
+- Local cryptographic entropy (always on)
+- [ANU QRNG](https://qrng.anu.edu.au) — real hardware quantum randomness, via ANU's public API
+- Amazon Braket — a real superposition-and-measure circuit run on Braket's SDK simulator
+- IBM Quantum hardware — real qubits in superposition, when IBM access is available
+
+The combined seed selects the word from a small curated pool, paints the
+game's daily background image, and is displayed in-game along with its
+source. Every seed is recorded in `seed.json`.
 
 ## Stack
 - `index.html` — the entire game (vanilla JS, no frameworks)
-- `quantum_seed_job.py` — daily quantum experiment (Qiskit / IBM Runtime)
-- `.github/workflows/daily-seed.yml` — scheduled automation
+- `.github/workflows/daily-seed.yml` — scheduled automation, pulls the daily seed from QeNTROPY
 - Hosted on GitHub Pages, auto-deployed from this repo
 
 ## Credits
