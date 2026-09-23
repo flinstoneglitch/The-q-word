@@ -18,17 +18,30 @@ jobs:
       - name: Fetch daily seed from QeNTROPY and write seed.json
         run: |
           python3 - << 'PYEOF'
-          import json, urllib.request, sys
+          import json, time, urllib.request, sys
           from datetime import datetime
           from zoneinfo import ZoneInfo
 
           url = "https://q-runtime.onrender.com/api/daily-seed?app=qword"
-          try:
-              with urllib.request.urlopen(url, timeout=30) as r:
-                  data = json.loads(r.read())
-          except Exception as e:
-              print(f"ERROR: could not reach {url}: {e}", file=sys.stderr)
-              sys.exit(1)
+
+          # Render's free tier spins the service down when idle, and a cold
+          # start can take 40-50+ seconds to respond. A single 30s attempt
+          # was failing on most days for exactly that reason, so retry with
+          # a longer timeout instead of giving up after one shot — the first
+          # attempt also serves as the wake-up call for the ones after it.
+          attempts = 4
+          data = None
+          for attempt in range(1, attempts + 1):
+              try:
+                  with urllib.request.urlopen(url, timeout=45) as r:
+                      data = json.loads(r.read())
+                  break
+              except Exception as e:
+                  print(f"Attempt {attempt}/{attempts} failed: {e}", file=sys.stderr)
+                  if attempt == attempts:
+                      print(f"ERROR: could not reach {url} after {attempts} attempts", file=sys.stderr)
+                      sys.exit(1)
+                  time.sleep(15)
 
           if not data.get("ok") or not data.get("seed"):
               print(f"ERROR: bad response: {data}", file=sys.stderr)
